@@ -3,14 +3,12 @@ import { BaseEdge, EdgeLabelRenderer, getStraightPath, type EdgeProps } from '@x
 import { Heart } from 'lucide-react';
 
 function SpouseEdge(props: EdgeProps) {
-  const { id, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, style } = props;
+  const { id, sourceX, sourceY, targetX, targetY, style } = props;
   const [edgePath, labelX, labelY] = getStraightPath({
     sourceX,
     sourceY,
     targetX,
     targetY,
-    sourcePosition,
-    targetPosition,
   });
 
   return (
@@ -34,4 +32,3 @@ function SpouseEdge(props: EdgeProps) {
 }
 
 export default memo(SpouseEdge);
-

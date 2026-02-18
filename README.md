@@ -26,9 +26,9 @@
    - Tạo file `.env` từ file `.env.example` (hoặc tạo mới).
    - Điền các thông tin sau:
      ```
-     VITE_GOOGLE_SHEETS_API_KEY=your_google_api_key
-     VITE_SPREADSHEET_ID=your_spreadsheet_id
      VITE_PASSWORD=your_access_password
+     # Dùng Google Apps Script làm API nguồn dữ liệu (khuyến nghị)
+     VITE_APPS_SCRIPT_URL=https://script.google.com/macros/s/xxxxxxxx/exec
      ```
 
 4. **Chạy ứng dụng:**
@@ -37,6 +37,23 @@
    ```
 
 ## Cấu trúc Google Sheet
+
+## Dùng Google Apps Script làm Web App (tùy chọn)
+1. Trong Google Apps Script, triển khai Web App:
+   - Deploy > New deployment > Web app
+   - Execute as: Me
+   - Who has access: Anyone
+2. Viết doGet() trả về JSON dạng values hoặc mảng object. Ví dụ:
+   ```javascript
+   function doGet() {
+     const ss = SpreadsheetApp.openById('SPREADSHEET_ID');
+     const sh = ss.getSheetByName('Sheet1');
+     const values = sh.getRange('A1:I' + sh.getLastRow()).getValues();
+     return ContentService.createTextOutput(JSON.stringify({ values }))
+       .setMimeType(ContentService.MimeType.JSON);
+   }
+   ```
+3. Dán URL triển khai vào `VITE_APPS_SCRIPT_URL` trong `.env`, sau đó khởi động lại dev server.
 
 Để ứng dụng hoạt động đúng, file Google Sheet cần có cấu trúc các cột như sau (Sheet1):
 
@@ -63,19 +80,9 @@
 - Mỗi dòng tương ứng một cuộc hôn nhân; một người có thể xuất hiện ở nhiều dòng khác nhau.
 - Con cái vẫn liên kết qua “ID cha/mẹ” ở Sheet thành viên (có thể tách thành “ID cha”, “ID mẹ” nếu cần).
 
-## Hướng dẫn lấy API Key và Spreadsheet ID
-
-1. **Spreadsheet ID:**
-   - Mở file Google Sheet.
-   - URL có dạng: `https://docs.google.com/spreadsheets/d/SPREADSHEET_ID/edit...`
-   - Copy phần `SPREADSHEET_ID`.
-
-2. **Google Sheets API Key:**
-   - Truy cập [Google Cloud Console](https://console.cloud.google.com/).
-   - Tạo Project mới.
-   - Vào "APIs & Services" > "Library" > Tìm "Google Sheets API" và Enable nó.
-   - Vào "APIs & Services" > "Credentials" > "Create Credentials" > "API Key".
-   - Copy API Key.
+## Nguồn dữ liệu
+- Mặc định ứng dụng đọc dữ liệu từ Google Apps Script Web App (`VITE_APPS_SCRIPT_URL`) trả về JSON.
+- Không còn dùng trực tiếp Google Sheets API (sheets.googleapis.com) trong frontend.
 
 ## Triển khai (Deployment)
 

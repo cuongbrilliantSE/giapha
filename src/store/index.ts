@@ -16,6 +16,7 @@ import { FamilyMember } from '../types';
 import { fetchFamilyData } from '../services/googleSheets';
 import { buildFamilyTree } from '../utils/dataTransform';
 import { getLayoutedElements } from '../utils/layout';
+import { filterCollapsed } from '../utils/treeFilter';
 
 interface RFState {
   nodes: Node[];
@@ -25,6 +26,7 @@ interface RFState {
   error: string | null;
   searchTerm: string;
   selectedMember: FamilyMember | null;
+  collapsedIds: string[];
   
   onNodesChange: OnNodesChange;
   onEdgesChange: OnEdgesChange;
@@ -33,6 +35,8 @@ interface RFState {
   fetchData: () => Promise<void>;
   setSearchTerm: (term: string) => void;
   setSelectedMember: (member: FamilyMember | null) => void;
+  toggleCollapse: (id: string) => void;
+  recompute: () => void;
 }
 
 const useStore = create<RFState>((set, get) => ({
@@ -43,6 +47,7 @@ const useStore = create<RFState>((set, get) => ({
   error: null,
   searchTerm: '',
   selectedMember: null,
+  collapsedIds: [],
 
   onNodesChange: (changes: NodeChange[]) => {
     set({
@@ -65,14 +70,8 @@ const useStore = create<RFState>((set, get) => ({
     try {
       const rawRows = await fetchFamilyData();
       const tree = buildFamilyTree(rawRows);
-      const { nodes, edges } = getLayoutedElements(tree);
-      
-      set({
-        rawMembers: tree,
-        nodes,
-        edges,
-        loading: false,
-      });
+      set({ rawMembers: tree, loading: false });
+      get().recompute();
     } catch (err: any) {
       set({
         loading: false,
@@ -83,26 +82,53 @@ const useStore = create<RFState>((set, get) => ({
 
   setSearchTerm: (term: string) => {
     set({ searchTerm: term });
-    
-    const { nodes } = get();
-    const newNodes = nodes.map((node) => {
-      const data = node.data as unknown as FamilyMember;
-      const isMatch = term.trim() !== '' && data.name.toLowerCase().includes(term.toLowerCase());
-      
-      return {
-        ...node,
-        data: {
-          ...data,
-          highlighted: isMatch,
-        },
-      };
-    });
-    
-    set({ nodes: newNodes });
+    get().recompute();
   },
 
   setSelectedMember: (member: FamilyMember | null) => {
     set({ selectedMember: member });
+  },
+
+  toggleCollapse: (id: string) => {
+    const { collapsedIds } = get();
+    const exists = collapsedIds.includes(id);
+    const next = exists ? collapsedIds.filter(x => x !== id) : [...collapsedIds, id];
+    set({ collapsedIds: next });
+    get().recompute();
+  },
+
+  recompute: () => {
+    const { rawMembers, collapsedIds, searchTerm } = get();
+    const collapsedSet = new Set(collapsedIds);
+    const filtered = filterCollapsed(rawMembers, collapsedSet);
+
+    // Build set of ids that have children in the original tree
+    const originalHasChildren = new Set<string>();
+    const walk = (m: FamilyMember) => {
+      if (m.children && m.children.length > 0) {
+        originalHasChildren.add(m.id);
+        m.children.forEach(walk);
+      }
+    };
+    rawMembers.forEach(walk);
+
+    // Annotate filtered tree with hasChildrenOriginal so toggle button persists
+    const annotate = (m: FamilyMember): FamilyMember => {
+      const cloned: any = { ...m, hasChildrenOriginal: originalHasChildren.has(m.id) };
+      if (m.children && m.children.length > 0) {
+        cloned.children = m.children.map(annotate);
+      }
+      return cloned as FamilyMember;
+    };
+    const annotated = filtered.map(annotate);
+
+    const { nodes, edges } = getLayoutedElements(annotated);
+    const markedNodes = nodes.map((node) => {
+      const data = node.data as unknown as FamilyMember;
+      const isMatch = searchTerm.trim() !== '' && data.name.toLowerCase().includes(searchTerm.toLowerCase());
+      return { ...node, data: { ...data, highlighted: isMatch } };
+    });
+    set({ nodes: markedNodes, edges });
   },
 }));
 

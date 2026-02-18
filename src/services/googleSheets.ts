@@ -2,8 +2,6 @@ import axios from 'axios';
 import { CONFIG } from '../config';
 import { RawSheetRow } from '../types';
 
-const SHEETS_API_URL = 'https://sheets.googleapis.com/v4/spreadsheets';
-
 export const fetchFamilyData = async (): Promise<RawSheetRow[]> => {
   const mockData: RawSheetRow[] = [
     {
@@ -74,39 +72,71 @@ export const fetchFamilyData = async (): Promise<RawSheetRow[]> => {
     },
   ];
 
-  // Fallback to mock data if env not provided
-  if (!CONFIG.GOOGLE_SHEETS_API_KEY || !CONFIG.SPREADSHEET_ID) {
-    console.warn('Using mock family data because env variables are missing.');
-    return mockData;
-  }
-
-  try {
-    const range = 'Sheet1!A:I'; // Thêm cột I cho ID vợ/chồng
-    const response = await axios.get(
-      `${SHEETS_API_URL}/${CONFIG.SPREADSHEET_ID}/values/${range}?key=${CONFIG.GOOGLE_SHEETS_API_KEY}`
-    );
-
-    const values = response.data.values;
-    if (!values || values.length === 0) {
-      return [];
+  const normalizeToRows = (payload: any): RawSheetRow[] => {
+    if (!payload) return [];
+    if (Array.isArray(payload?.values)) {
+      const rows = payload.values.slice(1) as string[][];
+      return rows.map((row) => ({
+        id: row[0] || '',
+        fullName: row[1] || '',
+        birthDate: row[2] || '',
+        deathDate: row[3] || '',
+        gender: row[4] || '',
+        parentId: row[5] || '',
+        generation: row[6] || '',
+        additionalInfo: row[7] || '',
+        spouseId: row[8] || '',
+      }));
     }
+    if (Array.isArray(payload)) {
+      return payload.map((o: any) => ({
+        id: String(o.id ?? o.ID ?? ''),
+        fullName: String(o.fullName ?? o.name ?? o['Họ tên đầy đủ'] ?? ''),
+        birthDate: String(o.birthDate ?? o['Ngày sinh'] ?? ''),
+        deathDate: String(o.deathDate ?? o['Ngày mất'] ?? ''),
+        gender: String(o.gender ?? o['Giới tính'] ?? ''),
+        parentId: String(o.parentId ?? o['ID cha/mẹ'] ?? ''),
+        generation: String(o.generation ?? o['Cấp thế hệ'] ?? ''),
+        additionalInfo: String(o.additionalInfo ?? o['Thông tin thêm'] ?? ''),
+        spouseId: String(o.spouseId ?? o['ID vợ/chồng'] ?? ''),
+      }));
+    }
+    if (Array.isArray(payload?.rows)) {
+      return normalizeToRows({ values: payload.rows });
+    }
+    return [];
+  };
 
-    // Skip header row
-    const rows = values.slice(1);
-
-    return rows.map((row: string[]) => ({
-      id: row[0] || '',
-      fullName: row[1] || '',
-      birthDate: row[2] || '',
-      deathDate: row[3] || '',
-      gender: row[4] || '',
-      parentId: row[5] || '',
-      generation: row[6] || '',
-      additionalInfo: row[7] || '',
-      spouseId: row[8] || '',
-    }));
-  } catch (error) {
-    console.error('Error fetching data from Google Sheets, falling back to mock:', error);
-    return mockData;
+  if (CONFIG.APPS_SCRIPT_URL) {
+    try {
+      const url = new URL(CONFIG.APPS_SCRIPT_URL);
+      url.searchParams.set('t', Date.now().toString());
+      const resp = await axios.get(url.toString(), {
+        withCredentials: false,
+        responseType: 'text', // robust against servers sending text/html
+        transformResponse: [(data) => data], // prevent axios auto-parse
+      });
+      let payload: any = resp.data;
+      if (typeof payload === 'string') {
+        const trimmed = payload.trim();
+        if (trimmed.startsWith('<') && trimmed.includes('Sign in - Google Accounts')) {
+          throw new Error('Apps Script Web App yêu cầu đăng nhập. Hãy triển khai với quyền truy cập “Anyone” hoặc bật CORS.');
+        }
+        try {
+          payload = JSON.parse(trimmed);
+        } catch {
+          // Try to eval-like JSON if Apps Script returns single quotes (rare)
+          throw new Error('Apps Script Web App không trả JSON hợp lệ. Vui lòng cập nhật doGet() để trả JSON.');
+        }
+      }
+      const rows = normalizeToRows(payload);
+      if (rows.length > 0) return rows;
+    } catch (e) {
+      console.warn('Apps Script Web App fetch failed:', e);
+    }
   }
+
+  // Không dùng Google Sheets API nữa; nếu Apps Script URL không khả dụng, trả mock
+  console.warn('Apps Script URL không khả dụng hoặc lỗi. Dùng mock data.');
+  return mockData;
 };

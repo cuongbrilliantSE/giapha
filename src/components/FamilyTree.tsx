@@ -14,11 +14,11 @@ import SpouseEdge from './edges/SpouseEdge';
 import useStore from '../store';
 import { FamilyMember } from '../types';
 
-const nodeTypes = {
+const nodeTypes: any = {
   custom: CustomNode,
 };
 
-const edgeTypes = {
+const edgeTypes: any = {
   spouseEdge: SpouseEdge,
 };
 

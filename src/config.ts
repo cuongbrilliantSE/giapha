@@ -1,13 +1,8 @@
 export const CONFIG = {
-  GOOGLE_SHEETS_API_KEY: import.meta.env.VITE_GOOGLE_SHEETS_API_KEY || '',
-  SPREADSHEET_ID: import.meta.env.VITE_SPREADSHEET_ID || '',
+  APPS_SCRIPT_URL: import.meta.env.VITE_APPS_SCRIPT_URL || '',
   PASSWORD: import.meta.env.VITE_PASSWORD || '',
 };
 
-if (!CONFIG.GOOGLE_SHEETS_API_KEY) {
-  console.warn('Missing VITE_GOOGLE_SHEETS_API_KEY environment variable');
-}
-
-if (!CONFIG.SPREADSHEET_ID) {
-  console.warn('Missing VITE_SPREADSHEET_ID environment variable');
+if (!CONFIG.APPS_SCRIPT_URL) {
+  console.warn('Missing VITE_APPS_SCRIPT_URL; using mock data for family tree');
 }

@@ -4,6 +4,21 @@ export const buildFamilyTree = (rows: RawSheetRow[]): FamilyMember[] => {
   const memberMap = new Map<string, FamilyMember>();
   const roots: FamilyMember[] = [];
 
+  const normalizeDate = (value?: string) => {
+    if (!value) return '';
+    const v = String(value).trim();
+    if (v === '') return '';
+    if (/^\d{4}$/.test(v)) return v;
+    const d = new Date(v);
+    if (!isNaN(d.getTime())) {
+      const dd = String(d.getDate()).padStart(2, '0');
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const yyyy = d.getFullYear();
+      return `${dd}/${mm}/${yyyy}`;
+    }
+    return v;
+  };
+
   // First pass: Create all member objects
   rows.forEach((row) => {
     if (!row.id) return;
@@ -11,8 +26,8 @@ export const buildFamilyTree = (rows: RawSheetRow[]): FamilyMember[] => {
     memberMap.set(row.id, {
       id: row.id,
       name: row.fullName,
-      birthDate: row.birthDate,
-      deathDate: row.deathDate,
+      birthDate: normalizeDate(row.birthDate),
+      deathDate: normalizeDate(row.deathDate),
       gender: row.gender as 'Nam' | 'Nữ',
       parentId: row.parentId,
       generation: parseInt(row.generation) || 0,
