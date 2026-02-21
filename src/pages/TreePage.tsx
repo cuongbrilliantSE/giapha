@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import FamilyTree from '../components/FamilyTree';
 import SearchFilter from '../components/SearchFilter';
 import MemberDetail from '../components/MemberDetail';
+import RelationshipModal from '../components/RelationshipModal';
 
 const TreePage = () => {
   const navigate = useNavigate();
@@ -19,6 +20,7 @@ const TreePage = () => {
       <SearchFilter />
       <FamilyTree />
       <MemberDetail />
+      <RelationshipModal />
     </div>
   );
 };

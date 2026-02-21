@@ -5,7 +5,7 @@ import clsx from 'clsx';
 import { flattenTree } from '../utils/dataTransform';
 
 const MemberDetail = () => {
-  const { selectedMember, setSelectedMember, rawMembers } = useStore();
+  const { selectedMember, setSelectedMember, rawMembers, setComparisonMode, setSourceMember } = useStore();
 
   const father = useMemo(() => {
     if (!selectedMember?.parentId) return null;
@@ -79,7 +79,17 @@ const MemberDetail = () => {
           {/* Add more fields here if available */}
         </div>
         
-        <div className="bg-gray-50 px-6 py-4 text-right border-t">
+        <div className="bg-gray-50 px-6 py-4 border-t flex justify-between items-center">
+          <button
+            onClick={() => {
+              setSourceMember(selectedMember);
+              setComparisonMode(true);
+              setSelectedMember(null);
+            }}
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-white font-medium transition-colors shadow-sm"
+          >
+            Tính quan hệ
+          </button>
           <button
             onClick={() => setSelectedMember(null)}
             className="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg text-gray-800 font-medium transition-colors"

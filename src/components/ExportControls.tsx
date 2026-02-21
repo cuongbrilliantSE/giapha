@@ -7,9 +7,28 @@ import LogoutButton from './LogoutButton';
 import useStore from '../store';
 
 const ExportControls = () => {
-  const { getNodes } = useReactFlow();
+  const { getNodes, fitView } = useReactFlow();
   const { expandAll, collapseAll } = useStore();
   const SHOW_EXPORT = false;
+
+  const handleExpandAll = () => {
+    expandAll();
+    setTimeout(() => {
+      // Zoom out to fit all nodes
+      fitView({ 
+        duration: 800, 
+        padding: 0.1, 
+        minZoom: 0.01 
+      });
+    }, 100);
+  };
+
+  const handleCollapseAll = () => {
+    collapseAll();
+    setTimeout(() => {
+      fitView({ duration: 800, padding: 0.2 });
+    }, 100);
+  };
 
   const handleExport = async (type: 'image' | 'pdf') => {
     // Capture the whole flow container to include SVG edges consistently
@@ -71,14 +90,14 @@ const ExportControls = () => {
       <LogoutButton inline />
       <hr className="my-1 border-gray-100" />
       <button 
-        onClick={expandAll}
+        onClick={handleExpandAll}
         className="p-2 hover:bg-gray-100 rounded-md text-gray-700 flex items-center justify-center gap-2"
         title="Mở rộng tất cả"
       >
         <Maximize2 size={20} />
       </button>
       <button 
-        onClick={collapseAll}
+        onClick={handleCollapseAll}
         className="p-2 hover:bg-gray-100 rounded-md text-gray-700 flex items-center justify-center gap-2"
         title="Thu gọn tất cả"
       >

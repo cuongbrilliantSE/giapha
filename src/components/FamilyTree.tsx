@@ -33,6 +33,10 @@ const FamilyTree = () => {
     loading,
     error,
     setSelectedMember,
+    comparisonMode,
+    sourceMember,
+    setSourceMember,
+    setTargetMember,
   } = useStore();
 
   useEffect(() => {
@@ -40,7 +44,16 @@ const FamilyTree = () => {
   }, [fetchData]);
 
   const onNodeClick = (_: React.MouseEvent, node: Node) => {
-    setSelectedMember(node.data as unknown as FamilyMember);
+    const member = node.data as unknown as FamilyMember;
+    if (comparisonMode) {
+      if (!sourceMember) {
+        setSourceMember(member);
+      } else {
+        setTargetMember(member);
+      }
+    } else {
+      setSelectedMember(member);
+    }
   };
 
   if (loading) {
@@ -71,6 +84,8 @@ const FamilyTree = () => {
         edgeTypes={edgeTypes}
         onNodeClick={onNodeClick}
         fitView
+        minZoom={0.01}
+        maxZoom={4}
       >
         <Controls />
         <MiniMap />

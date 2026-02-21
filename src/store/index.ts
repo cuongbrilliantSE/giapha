@@ -27,6 +27,10 @@ interface RFState {
   searchTerm: string;
   selectedMember: FamilyMember | null;
   collapsedIds: string[];
+
+  comparisonMode: boolean;
+  sourceMember: FamilyMember | null;
+  targetMember: FamilyMember | null;
   
   onNodesChange: OnNodesChange;
   onEdgesChange: OnEdgesChange;
@@ -39,6 +43,11 @@ interface RFState {
   expandAll: () => void;
   collapseAll: () => void;
   recompute: () => void;
+
+  setComparisonMode: (mode: boolean) => void;
+  setSourceMember: (member: FamilyMember | null) => void;
+  setTargetMember: (member: FamilyMember | null) => void;
+  resetComparison: () => void;
 }
 
 const useStore = create<RFState>((set, get) => ({
@@ -50,6 +59,10 @@ const useStore = create<RFState>((set, get) => ({
   searchTerm: '',
   selectedMember: null,
   collapsedIds: [],
+
+  comparisonMode: false,
+  sourceMember: null,
+  targetMember: null,
 
   onNodesChange: (changes: NodeChange[]) => {
     set({
@@ -124,6 +137,22 @@ const useStore = create<RFState>((set, get) => ({
 
   setSelectedMember: (member: FamilyMember | null) => {
     set({ selectedMember: member });
+  },
+
+  setComparisonMode: (mode: boolean) => {
+    set({ comparisonMode: mode });
+  },
+
+  setSourceMember: (member: FamilyMember | null) => {
+    set({ sourceMember: member });
+  },
+
+  setTargetMember: (member: FamilyMember | null) => {
+    set({ targetMember: member });
+  },
+
+  resetComparison: () => {
+    set({ comparisonMode: false, sourceMember: null, targetMember: null });
   },
 
   toggleCollapse: (id: string) => {
