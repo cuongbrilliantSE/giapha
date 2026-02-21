@@ -1,10 +1,17 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { X, User, Calendar, Info, MapPin } from 'lucide-react';
 import useStore from '../store';
 import clsx from 'clsx';
+import { flattenTree } from '../utils/dataTransform';
 
 const MemberDetail = () => {
-  const { selectedMember, setSelectedMember } = useStore();
+  const { selectedMember, setSelectedMember, rawMembers } = useStore();
+
+  const father = useMemo(() => {
+    if (!selectedMember?.parentId) return null;
+    const allMembers = flattenTree(rawMembers);
+    return allMembers.find(m => m.id === selectedMember.parentId);
+  }, [selectedMember, rawMembers]);
 
   if (!selectedMember) return null;
 
@@ -50,6 +57,16 @@ const MemberDetail = () => {
               <p>{selectedMember.birthDate} {selectedMember.deathDate ? `- ${selectedMember.deathDate}` : ''}</p>
             </div>
           </div>
+
+          {father && (
+            <div className="flex items-center gap-3 text-gray-700">
+              <User className="text-gray-400" size={20} />
+              <div>
+                <p className="text-xs text-gray-500 font-medium uppercase">Cha</p>
+                <p>{father.name}</p>
+              </div>
+            </div>
+          )}
 
           <div className="flex items-center gap-3 text-gray-700">
             <Info className="text-gray-400" size={20} />
