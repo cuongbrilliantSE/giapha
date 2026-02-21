@@ -36,6 +36,8 @@ interface RFState {
   setSearchTerm: (term: string) => void;
   setSelectedMember: (member: FamilyMember | null) => void;
   toggleCollapse: (id: string) => void;
+  expandAll: () => void;
+  collapseAll: () => void;
   recompute: () => void;
 }
 
@@ -70,7 +72,23 @@ const useStore = create<RFState>((set, get) => ({
     try {
       const rawRows = await fetchFamilyData();
       const tree = buildFamilyTree(rawRows);
-      set({ rawMembers: tree, loading: false });
+      
+      const initialCollapsed: string[] = [];
+      
+      const walk = (m: FamilyMember) => {
+        if (m.children && m.children.length > 0) {
+           const gen = m.generation || 0;
+           // Mặc định hiển thị đến thế hệ 4 (0, 1, 2, 3), bắt đầu thu gọn từ thế hệ 4 (để ẩn con của 4 là 5)
+           if (gen >= 4) {
+             initialCollapsed.push(m.id);
+           }
+           m.children.forEach(walk);
+        }
+      };
+      
+      tree.forEach(walk);
+
+      set({ rawMembers: tree, loading: false, collapsedIds: initialCollapsed });
       get().recompute();
     } catch (err: any) {
       set({
@@ -78,6 +96,25 @@ const useStore = create<RFState>((set, get) => ({
         error: err.message || 'Failed to fetch data',
       });
     }
+  },
+
+  expandAll: () => {
+    set({ collapsedIds: [] });
+    get().recompute();
+  },
+
+  collapseAll: () => {
+    const { rawMembers } = get();
+    const allIds: string[] = [];
+    const walk = (m: FamilyMember) => {
+      if (m.children && m.children.length > 0) {
+        allIds.push(m.id);
+        m.children.forEach(walk);
+      }
+    };
+    rawMembers.forEach(walk);
+    set({ collapsedIds: allIds });
+    get().recompute();
   },
 
   setSearchTerm: (term: string) => {

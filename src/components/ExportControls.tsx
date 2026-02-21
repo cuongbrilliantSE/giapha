@@ -1,12 +1,14 @@
 import React from 'react';
-import { FileImage, FileText } from 'lucide-react';
+import { FileImage, FileText, Minimize2, Maximize2 } from 'lucide-react';
 import { useReactFlow } from '@xyflow/react';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import LogoutButton from './LogoutButton';
+import useStore from '../store';
 
 const ExportControls = () => {
   const { getNodes } = useReactFlow();
+  const { expandAll, collapseAll } = useStore();
   const SHOW_EXPORT = false;
 
   const handleExport = async (type: 'image' | 'pdf') => {
@@ -67,6 +69,21 @@ const ExportControls = () => {
   return (
     <div className="absolute top-4 right-4 z-10 bg-white p-2 rounded-lg shadow-md flex flex-col gap-2 border border-gray-200">
       <LogoutButton inline />
+      <hr className="my-1 border-gray-100" />
+      <button 
+        onClick={expandAll}
+        className="p-2 hover:bg-gray-100 rounded-md text-gray-700 flex items-center justify-center gap-2"
+        title="Mở rộng tất cả"
+      >
+        <Maximize2 size={20} />
+      </button>
+      <button 
+        onClick={collapseAll}
+        className="p-2 hover:bg-gray-100 rounded-md text-gray-700 flex items-center justify-center gap-2"
+        title="Thu gọn tất cả"
+      >
+        <Minimize2 size={20} />
+      </button>
       {SHOW_EXPORT && (
         <>
           <button 
