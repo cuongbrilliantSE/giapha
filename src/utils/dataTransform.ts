@@ -33,6 +33,7 @@ export const buildFamilyTree = (rows: RawSheetRow[]): FamilyMember[] => {
       generation: parseInt(row.generation) || 0,
       additionalInfo: row.additionalInfo,
       spouseId: row.spouseId || undefined,
+      displayOrder: row.displayOrder,
       children: [],
     });
   });
@@ -50,6 +51,27 @@ export const buildFamilyTree = (rows: RawSheetRow[]): FamilyMember[] => {
       roots.push(member);
     }
   });
+
+  // Third pass: Sort siblings by displayOrder
+  const sortFn = (a: FamilyMember, b: FamilyMember) => {
+    if (a.displayOrder !== undefined && b.displayOrder !== undefined) {
+      return a.displayOrder - b.displayOrder;
+    }
+    // If one has order and other doesn't, put the one with order first?
+    // Or put the one without order last? usually undefined means "don't care" or "end".
+    // Let's assume undefined goes to the end.
+    if (a.displayOrder !== undefined) return -1;
+    if (b.displayOrder !== undefined) return 1;
+    return 0;
+  };
+
+  memberMap.forEach((member) => {
+    if (member.children && member.children.length > 0) {
+      member.children.sort(sortFn);
+    }
+  });
+
+  roots.sort(sortFn);
 
   return roots;
 };

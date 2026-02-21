@@ -86,6 +86,7 @@ export const fetchFamilyData = async (): Promise<RawSheetRow[]> => {
         generation: row[6] || '',
         additionalInfo: row[7] || '',
         spouseId: row[8] || '',
+        displayOrder: row[9] ? parseInt(row[9]) : undefined,
       }));
     }
     if (Array.isArray(payload)) {
@@ -99,6 +100,11 @@ export const fetchFamilyData = async (): Promise<RawSheetRow[]> => {
         generation: String(o.generation ?? o['Cấp thế hệ'] ?? ''),
         additionalInfo: String(o.additionalInfo ?? o['Thông tin thêm'] ?? ''),
         spouseId: String(o.spouseId ?? o['ID vợ/chồng'] ?? ''),
+        displayOrder: (o.displayOrder !== undefined && o.displayOrder !== null && o.displayOrder !== '') 
+          ? parseInt(String(o.displayOrder)) 
+          : (o['Thứ tự hiển thị'] !== undefined && o['Thứ tự hiển thị'] !== null && o['Thứ tự hiển thị'] !== '')
+            ? parseInt(String(o['Thứ tự hiển thị']))
+            : undefined,
       }));
     }
     if (Array.isArray(payload?.rows)) {

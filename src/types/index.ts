@@ -8,6 +8,7 @@ export interface RawSheetRow {
   generation: string;
   additionalInfo: string;
   spouseId?: string;
+  displayOrder?: number;
 }
 
 export interface FamilyMember {
@@ -21,5 +22,6 @@ export interface FamilyMember {
   additionalInfo: string;
   children?: FamilyMember[];
   spouseId?: string;
+  displayOrder?: number;
   highlighted?: boolean;
 }
