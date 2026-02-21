@@ -1,6 +1,6 @@
 import React, { memo } from 'react';
 import { Handle, Position, NodeProps } from '@xyflow/react';
-import { User, ChevronRight, ChevronDown } from 'lucide-react';
+import { User, ChevronDown, ChevronUp } from 'lucide-react';
 import clsx from 'clsx';
 import { FamilyMember } from '../types';
 import useStore from '../store';
@@ -18,7 +18,7 @@ const CustomNode = ({ data }: NodeProps) => {
   return (
     <div
       className={clsx(
-        'px-4 py-2 shadow-md rounded-md border-2 bg-white w-[260px] relative transition-all duration-300',
+        'px-2 py-2 shadow-md rounded-md border-2 bg-white w-[180px] relative transition-all duration-300',
         isMale ? 'border-blue-500' : 'border-pink-500',
         isHighlighted && 'ring-4 ring-yellow-400 scale-105 shadow-xl'
       )}
@@ -26,13 +26,13 @@ const CustomNode = ({ data }: NodeProps) => {
       {hasChildren && (
         <button
           onClick={(e) => { e.stopPropagation(); toggleCollapse(member.id); }}
-          className="absolute -left-4 top-1/2 -translate-y-1/2 bg-white border border-gray-300 rounded-full p-1.5 shadow hover:bg-gray-50 z-10"
+          className="absolute -bottom-3 left-1/2 -translate-x-1/2 bg-white border border-gray-300 rounded-full p-0.5 shadow hover:bg-gray-50 z-10 flex items-center justify-center w-5 h-5"
           title={isCollapsed ? 'Mở rộng' : 'Thu gọn'}
         >
-          {isCollapsed ? <ChevronRight size={16} /> : <ChevronDown size={16} />}
+          {isCollapsed ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
         </button>
       )}
-      <Handle type="target" position={Position.Top} className="!w-3 !h-3 !bg-gray-400" />
+      <Handle type="target" position={Position.Top} className="!w-2 !h-2 !bg-gray-400" />
       <Handle
         id="spouse-left"
         type="target"
@@ -48,16 +48,16 @@ const CustomNode = ({ data }: NodeProps) => {
         }}
       />
       
-      <div className="flex items-start">
+      <div className="flex items-center">
         <div className={clsx(
-          'rounded-full p-2 mr-2 flex-shrink-0',
+          'rounded-full p-1 mr-2 flex-shrink-0',
           isMale ? 'bg-blue-100 text-blue-600' : 'bg-pink-100 text-pink-600'
         )}>
-          <User size={16} />
+          <User size={14} />
         </div>
-        <div className="whitespace-normal break-words">
-          <div className="text-sm font-bold" title={member.name}>{member.name}</div>
-          <div className="text-xs text-gray-500">
+        <div className="whitespace-normal break-words min-w-0">
+          <div className="text-xs font-bold leading-tight" title={member.name}>{member.name}</div>
+          <div className="text-[10px] text-gray-500 leading-tight">
             {member.birthDate} {member.deathDate ? `- ${member.deathDate}` : ''}
           </div>
         </div>
@@ -65,7 +65,7 @@ const CustomNode = ({ data }: NodeProps) => {
       
       {/* Không render icon trái tim trên node để chỉ hiển thị 1 trái tim giữa cạnh */}
 
-      <Handle type="source" position={Position.Bottom} className="!w-3 !h-3 !bg-gray-400" />
+      <Handle type="source" position={Position.Bottom} className="!w-2 !h-2 !bg-gray-400" />
       <Handle
         id="spouse-right"
         type="source"

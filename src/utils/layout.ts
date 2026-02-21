@@ -2,9 +2,9 @@ import dagre from 'dagre';
 import { Node, Edge, Position } from '@xyflow/react';
 import { FamilyMember } from '../types';
 
-const nodeWidth = 260;
-const nodeHeight = 90;
-const horizontalGap = 100; // tối thiểu khoảng cách giữa các node cùng hàng
+const nodeWidth = 180;
+const nodeHeight = 80;
+const horizontalGap = 40; // tối thiểu khoảng cách giữa các node cùng hàng
 const spouseSpacing = nodeWidth + horizontalGap; // đảm bảo cặp vợ/chồng không đè lên nhau
 
 export const getLayoutedElements = (members: FamilyMember[]) => {
@@ -14,8 +14,8 @@ export const getLayoutedElements = (members: FamilyMember[]) => {
   dagreGraph.setGraph({
     rankdir: 'TB',
     nodesep: horizontalGap,
-    ranksep: 170,
-    edgesep: 30,
+    ranksep: 100,
+    edgesep: 20,
   });
 
   const nodes: Node[] = [];
@@ -78,7 +78,12 @@ export const getLayoutedElements = (members: FamilyMember[]) => {
     const cid = `cp-${a}-${b}`;
     coupleIdByMember.set(a, cid);
     coupleIdByMember.set(b, cid);
-    const gen = Math.min(am.generation ?? 0, bm.generation ?? 0);
+    
+    const g1 = am.generation || 0;
+    const g2 = bm.generation || 0;
+    // Nếu một người thiếu generation (0) thì lấy người kia. Nếu cả 2 đều có thì lấy min.
+    const gen = (g1 > 0 && g2 > 0) ? Math.min(g1, g2) : Math.max(g1, g2);
+    
     coupleNodes.set(cid, { members: [a, b], generation: gen });
   });
   nodes.forEach((n) => {
@@ -170,10 +175,11 @@ export const getLayoutedElements = (members: FamilyMember[]) => {
   // Collision resolution per row to avoid overlapping nodes
   const rows = new Map<number, Node[]>();
   Array.from(nodeById.values()).forEach((n) => {
-    const d = n.data as unknown as FamilyMember;
-    const gen = Number.isFinite(d.generation) ? d.generation : 0;
-    if (!rows.has(gen)) rows.set(gen, []);
-    rows.get(gen)!.push(n);
+    // Group by visual row (Y position) instead of data generation
+    // because some spouses might have missing generation data but are placed correctly by layout
+    const visualGen = Math.round(n.position.y / rowHeight);
+    if (!rows.has(visualGen)) rows.set(visualGen, []);
+    rows.get(visualGen)!.push(n);
   });
   rows.forEach((rowNodes) => {
     rowNodes.sort((a, b) => a.position.x - b.position.x);
