@@ -6,9 +6,10 @@ import { FamilyMember } from '../types';
 import useStore from '../store';
 
 const CustomNode = ({ data }: NodeProps) => {
-  const member = data as unknown as FamilyMember;
+  const member = data as unknown as FamilyMember & { isFocused?: boolean };
   const isMale = member.gender === 'Nam';
   const isHighlighted = member.highlighted;
+  const isFocused = member.isFocused;
   const { collapsedIds, toggleCollapse } = useStore();
   const isCollapsed = collapsedIds.includes(member.id);
   const hasChildren =
@@ -20,7 +21,8 @@ const CustomNode = ({ data }: NodeProps) => {
       className={clsx(
         'px-2 py-2 shadow-md rounded-md border-2 bg-white w-[180px] relative transition-all duration-300',
         isMale ? 'border-blue-500' : 'border-pink-500',
-        isHighlighted && 'ring-4 ring-yellow-400 scale-105 shadow-xl'
+        isHighlighted && 'ring-2 ring-yellow-400',
+        isFocused && 'ring-4 ring-red-500 scale-110 shadow-2xl z-50'
       )}
     >
       {hasChildren && (

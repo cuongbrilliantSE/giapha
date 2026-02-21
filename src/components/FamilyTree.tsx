@@ -5,6 +5,7 @@ import {
   Background,
   MiniMap,
   Node,
+  useReactFlow,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
@@ -20,6 +21,31 @@ const nodeTypes: any = {
 
 const edgeTypes: any = {
   spouseEdge: SpouseEdge,
+};
+
+// Component to handle search focus logic
+const SearchFocusHandler = () => {
+  const { setCenter } = useReactFlow();
+  const { searchResults, currentSearchIndex, nodes } = useStore();
+
+  useEffect(() => {
+    if (searchResults.length > 0 && currentSearchIndex >= 0) {
+      const targetId = searchResults[currentSearchIndex];
+      const node = nodes.find((n) => n.id === targetId);
+
+      if (node && node.position) {
+        // Center the view on the node with zoom 1.5
+        // node.width and node.height might be undefined initially or if not measured yet
+        // Default to 180 and 100 as per CustomNode
+        const width = node.measured?.width || node.width || 180;
+        const height = node.measured?.height || node.height || 100;
+        
+        setCenter(node.position.x + width / 2, node.position.y + height / 2, { zoom: 1.5, duration: 800 });
+      }
+    }
+  }, [searchResults, currentSearchIndex, nodes, setCenter]);
+
+  return null;
 };
 
 const FamilyTree = () => {
@@ -91,6 +117,7 @@ const FamilyTree = () => {
         <MiniMap />
         <Background gap={12} size={1} />
         <ExportControls />
+        <SearchFocusHandler />
       </ReactFlow>
     </div>
   );

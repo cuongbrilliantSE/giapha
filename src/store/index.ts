@@ -14,7 +14,7 @@ import {
 } from '@xyflow/react';
 import { FamilyMember } from '../types';
 import { fetchFamilyData } from '../services/googleSheets';
-import { buildFamilyTree } from '../utils/dataTransform';
+import { buildFamilyTree, flattenTree } from '../utils/dataTransform';
 import { getLayoutedElements } from '../utils/layout';
 import { filterCollapsed } from '../utils/treeFilter';
 
@@ -25,6 +25,8 @@ interface RFState {
   loading: boolean;
   error: string | null;
   searchTerm: string;
+  searchResults: string[];
+  currentSearchIndex: number;
   selectedMember: FamilyMember | null;
   collapsedIds: string[];
 
@@ -38,6 +40,8 @@ interface RFState {
   
   fetchData: () => Promise<void>;
   setSearchTerm: (term: string) => void;
+  nextSearchResult: () => void;
+  prevSearchResult: () => void;
   setSelectedMember: (member: FamilyMember | null) => void;
   toggleCollapse: (id: string) => void;
   expandAll: () => void;
@@ -57,6 +61,8 @@ const useStore = create<RFState>((set, get) => ({
   loading: false,
   error: null,
   searchTerm: '',
+  searchResults: [],
+  currentSearchIndex: -1,
   selectedMember: null,
   collapsedIds: [],
 
@@ -131,7 +137,73 @@ const useStore = create<RFState>((set, get) => ({
   },
 
   setSearchTerm: (term: string) => {
-    set({ searchTerm: term });
+    const { rawMembers, collapsedIds } = get();
+    
+    if (!term.trim()) {
+      set({ searchTerm: term, searchResults: [], currentSearchIndex: -1 });
+      get().recompute();
+      return;
+    }
+
+    const lowerTerm = term.toLowerCase();
+    const newCollapsedIds = new Set(collapsedIds);
+    const allMembers = flattenTree(rawMembers);
+    const memberMap = new Map<string, FamilyMember>();
+    allMembers.forEach(m => memberMap.set(m.id, m));
+    const results: string[] = [];
+
+    const expandPath = (memberId: string) => {
+      let currentId = memberId;
+      while (true) {
+        const member = memberMap.get(currentId);
+        if (!member) break;
+        
+        // If this member has a parent, ensure the parent is expanded
+        if (member.parentId) {
+          // If parent is in collapsedIds, remove it
+          if (newCollapsedIds.has(member.parentId)) {
+             newCollapsedIds.delete(member.parentId);
+          }
+          currentId = member.parentId;
+        } else {
+          break;
+        }
+      }
+    };
+
+    allMembers.forEach(m => {
+      if (m.name.toLowerCase().includes(lowerTerm)) {
+        results.push(m.id);
+        expandPath(m.id);
+        // Also expand spouse's path if applicable (e.g. for in-laws)
+        if (m.spouseId) {
+            expandPath(m.spouseId);
+        }
+      }
+    });
+
+    set({ 
+        searchTerm: term, 
+        collapsedIds: Array.from(newCollapsedIds),
+        searchResults: results,
+        currentSearchIndex: results.length > 0 ? 0 : -1
+    });
+    get().recompute();
+  },
+
+  nextSearchResult: () => {
+    const { searchResults, currentSearchIndex } = get();
+    if (searchResults.length === 0) return;
+    const nextIndex = (currentSearchIndex + 1) % searchResults.length;
+    set({ currentSearchIndex: nextIndex });
+    get().recompute();
+  },
+
+  prevSearchResult: () => {
+    const { searchResults, currentSearchIndex } = get();
+    if (searchResults.length === 0) return;
+    const prevIndex = (currentSearchIndex - 1 + searchResults.length) % searchResults.length;
+    set({ currentSearchIndex: prevIndex });
     get().recompute();
   },
 
@@ -192,7 +264,18 @@ const useStore = create<RFState>((set, get) => ({
     const markedNodes = nodes.map((node) => {
       const data = node.data as unknown as FamilyMember;
       const isMatch = searchTerm.trim() !== '' && data.name.toLowerCase().includes(searchTerm.toLowerCase());
-      return { ...node, data: { ...data, highlighted: isMatch } };
+      
+      const { searchResults, currentSearchIndex } = get();
+      const isFocused = isMatch && searchResults[currentSearchIndex] === data.id;
+
+      return { 
+          ...node, 
+          data: { 
+              ...data, 
+              highlighted: isMatch,
+              isFocused: isFocused // Add this to CustomNode if we want visual distinction
+          } 
+      };
     });
     set({ nodes: markedNodes, edges });
   },
