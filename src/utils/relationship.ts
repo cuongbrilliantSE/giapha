@@ -30,7 +30,143 @@ export const calculateRelationship = (
   const pathSource = getPath(source);
   const pathTarget = getPath(target);
 
-  // Find Lowest Common Ancestor (LCA)
+  // --- Case 0: Direct Spouse ---
+  if (source.spouseId === target.id || target.spouseId === source.id) {
+      const sTitle = source.gender === 'Nam' ? 'Chồng' : 'Vợ';
+      const tTitle = target.gender === 'Nam' ? 'Chồng' : 'Vợ';
+      return {
+          sourceCallTarget: tTitle,
+          targetCallSource: sTitle,
+          relationship: 'Vợ Chồng'
+      };
+  }
+
+  // --- Case 0.5: Spouse of Ancestor (Target is Spouse of Source's Ancestor) ---
+  for (let i = 1; i < pathSource.length; i++) {
+    const ancestor = pathSource[i];
+    if (ancestor.spouseId === target.id) {
+      // Found! Target is spouse of ancestor at generation distance 'i'
+      if (i === 1) {
+        // Spouse of Parent
+        const isMom = target.gender === 'Nữ';
+        return {
+          sourceCallTarget: isMom ? 'Mẹ' : 'Cha (dượng)',
+          targetCallSource: 'Con',
+          relationship: isMom ? 'Mẹ - Con' : 'Cha - Con'
+        };
+      } else if (i === 2) {
+        // Spouse of Grandparent
+        const isGrandma = target.gender === 'Nữ';
+        return {
+          sourceCallTarget: isGrandma ? 'Bà' : 'Ông',
+          targetCallSource: 'Cháu',
+          relationship: isGrandma ? 'Bà - Cháu' : 'Ông - Cháu'
+        };
+      } else {
+        // Great-grandparent+
+        const term = target.gender === 'Nam' ? 'Cụ/Kỵ Ông' : 'Cụ/Kỵ Bà';
+        return {
+            sourceCallTarget: term,
+            targetCallSource: 'Chắt/Chút',
+            relationship: 'Tổ tiên (bên dâu/rể) - Con cháu'
+        };
+      }
+    }
+  }
+
+  // --- Case 0.6: Ancestor of Spouse (Source is Spouse of Target's Ancestor) ---
+  for (let i = 1; i < pathTarget.length; i++) {
+    const ancestor = pathTarget[i];
+    if (ancestor.spouseId === source.id) {
+       if (i === 1) {
+        // Source is Spouse of Target's Parent
+        const isMom = source.gender === 'Nữ';
+        return {
+          sourceCallTarget: 'Con',
+          targetCallSource: isMom ? 'Mẹ' : 'Cha (dượng)',
+          relationship: isMom ? 'Mẹ - Con' : 'Cha - Con'
+        };
+      } else if (i === 2) {
+         const isGrandma = source.gender === 'Nữ';
+         return {
+           sourceCallTarget: 'Cháu',
+           targetCallSource: isGrandma ? 'Bà' : 'Ông',
+           relationship: isGrandma ? 'Bà - Cháu' : 'Ông - Cháu'
+         };
+      }
+    }
+  }
+
+  // --- Case 0.7: Target is Spouse of Source's Descendant (Source = Parent-in-law, Target = Child-in-law) ---
+   if (target.spouseId && memberMap.has(target.spouseId)) {
+     const spouseT = memberMap.get(target.spouseId)!;
+     const pathSpouseT = getPath(spouseT);
+     // Check if Source is in pathSpouseT (Source is ancestor of Target's spouse)
+     for (let i = 1; i < pathSpouseT.length; i++) {
+        if (pathSpouseT[i].id === source.id) {
+           // Source is ancestor of Target's spouse
+           const isDau = target.gender === 'Nữ';
+           if (i === 1) {
+              // Spouse of Child
+              return {
+                  sourceCallTarget: isDau ? 'Con dâu' : 'Con rể',
+                  targetCallSource: source.gender === 'Nam' ? 'Cha (chồng/vợ)' : 'Mẹ (chồng/vợ)', 
+                  relationship: isDau ? 'Cha/Mẹ - Con dâu' : 'Cha/Mẹ - Con rể'
+              };
+           } else if (i === 2) {
+              // Spouse of Grandchild
+              return {
+                  sourceCallTarget: isDau ? 'Cháu dâu' : 'Cháu rể',
+                  targetCallSource: source.gender === 'Nam' ? 'Ông (nội/ngoại)' : 'Bà (nội/ngoại)', 
+                  relationship: isDau ? 'Ông/Bà - Cháu dâu' : 'Ông/Bà - Cháu rể'
+              };
+           } else {
+              // Spouse of Great-Grandchild+
+              return {
+                  sourceCallTarget: 'Chắt/Chút dâu/rể',
+                  targetCallSource: 'Cụ/Kỵ', 
+                  relationship: 'Tổ tiên - Con cháu dâu/rể'
+              };
+           }
+        }
+     }
+   }
+
+   // --- Case 0.8: Source is Spouse of Target's Descendant (Source = Child-in-law, Target = Parent-in-law) ---
+   if (source.spouseId && memberMap.has(source.spouseId)) {
+     const spouseS = memberMap.get(source.spouseId)!;
+     const pathSpouseS = getPath(spouseS);
+     // Check if Target is in pathSpouseS (Target is ancestor of Source's spouse)
+     for (let i = 1; i < pathSpouseS.length; i++) {
+        if (pathSpouseS[i].id === target.id) {
+           // Target is ancestor of Source's spouse
+           const isDau = source.gender === 'Nữ';
+           if (i === 1) {
+              // Source is Spouse of Child -> Child-in-law
+               return {
+                  sourceCallTarget: target.gender === 'Nam' ? 'Cha (chồng/vợ)' : 'Mẹ (chồng/vợ)',
+                  targetCallSource: isDau ? 'Con dâu' : 'Con rể',
+                  relationship: isDau ? 'Cha/Mẹ - Con dâu' : 'Cha/Mẹ - Con rể'
+              };
+           } else if (i === 2) {
+              // Source is Spouse of Grandchild
+               return {
+                  sourceCallTarget: target.gender === 'Nam' ? 'Ông (nội/ngoại)' : 'Bà (nội/ngoại)',
+                  targetCallSource: isDau ? 'Cháu dâu' : 'Cháu rể',
+                  relationship: isDau ? 'Ông/Bà - Cháu dâu' : 'Ông/Bà - Cháu rể'
+              };
+           } else {
+               return {
+                  sourceCallTarget: 'Cụ/Kỵ',
+                  targetCallSource: 'Chắt/Chút dâu/rể', 
+                  relationship: 'Tổ tiên - Con cháu dâu/rể'
+              };
+           }
+        }
+     }
+   }
+
+   // Find Lowest Common Ancestor (LCA)
   let lca: FamilyMember | null = null;
   let distSource = -1;
   let distTarget = -1;
