@@ -27,6 +27,13 @@ export const calculateRelationship = (
     return path;
   };
 
+  // Helper to parse birth year
+  const getBirthYear = (m: FamilyMember): number => {
+    if (!m.birthDate) return 9999;
+    const match = m.birthDate.match(/\d{4}/);
+    return match ? parseInt(match[0], 10) : 9999;
+  };
+
   const pathSource = getPath(source);
   const pathTarget = getPath(target);
 
@@ -166,6 +173,68 @@ export const calculateRelationship = (
      }
    }
 
+  // --- Case 0.9: Sibling-in-law (One is spouse of Sibling) ---
+  // Source is Spouse of Target's Sibling
+  if (source.spouseId && memberMap.has(source.spouseId)) {
+    const spouseS = memberMap.get(source.spouseId)!;
+    // Check if spouseS and Target are siblings
+    // Check parents
+    if (spouseS.parentId && spouseS.parentId === target.parentId) {
+       // Yes, they are siblings
+       const isSpouseOlder = spouseS.displayOrder !== undefined && target.displayOrder !== undefined 
+          ? spouseS.displayOrder < target.displayOrder 
+          : getBirthYear(spouseS) < getBirthYear(target);
+
+       const relation = 'Anh chị em (dâu/rể)';
+       if (isSpouseOlder) {
+          // Spouse is older -> Source is Anh/Chị
+          return {
+             // Source (Wife of Older Bro) calls Target (Younger Bro): Chú (if Target is male), Cô (if Target is female)
+             // Source (Husband of Older Sis) calls Target (Younger Bro): Cậu (if Target is male), Dì (if Target is female)
+             // Simplification for now:
+             sourceCallTarget: 'Em',
+             targetCallSource: source.gender === 'Nam' ? 'Anh (rể)' : 'Chị (dâu)',
+             relationship: relation
+          };
+       } else {
+          // Spouse is younger -> Source is Em
+          return {
+             sourceCallTarget: target.gender === 'Nam' ? 'Anh' : 'Chị',
+             targetCallSource: source.gender === 'Nam' ? 'Em (rể)' : 'Em (dâu)',
+             relationship: relation
+          };
+       }
+    }
+  }
+
+  // Target is Spouse of Source's Sibling
+  if (target.spouseId && memberMap.has(target.spouseId)) {
+     const spouseT = memberMap.get(target.spouseId)!;
+     if (spouseT.parentId && spouseT.parentId === source.parentId) {
+        // Yes, they are siblings
+        const isSpouseOlder = spouseT.displayOrder !== undefined && source.displayOrder !== undefined
+           ? spouseT.displayOrder < source.displayOrder
+           : getBirthYear(spouseT) < getBirthYear(source);
+        
+        const relation = 'Anh chị em (dâu/rể)';
+        if (isSpouseOlder) {
+           // Target's spouse is older -> Target is Anh/Chị
+           return {
+              sourceCallTarget: target.gender === 'Nam' ? 'Anh (rể)' : 'Chị (dâu)',
+              targetCallSource: 'Em',
+              relationship: relation
+           };
+        } else {
+           // Target's spouse is younger -> Target is Em
+           return {
+              sourceCallTarget: target.gender === 'Nam' ? 'Em (rể)' : 'Em (dâu)',
+              targetCallSource: source.gender === 'Nam' ? 'Anh' : 'Chị',
+              relationship: relation
+           };
+        }
+     }
+  }
+
    // Find Lowest Common Ancestor (LCA)
   let lca: FamilyMember | null = null;
   let distSource = -1;
@@ -195,13 +264,6 @@ export const calculateRelationship = (
 
   const genDiff = target.generation - source.generation; // + means Target is lower (descendant), - means Target is higher (ancestor)
   
-  // Helper to parse birth year
-  const getBirthYear = (m: FamilyMember): number => {
-    if (!m.birthDate) return 9999;
-    const match = m.birthDate.match(/\d{4}/);
-    return match ? parseInt(match[0], 10) : 9999;
-  };
-
   const sourceYear = getBirthYear(source);
   const targetYear = getBirthYear(target);
 
